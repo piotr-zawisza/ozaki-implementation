@@ -12,8 +12,8 @@ The code architecture must directly exploit the specifics of the Xeon Max 9462:
 
 | Parameter | Specification | Implication for the Ozaki Scheme |
 | :--- | :--- | :--- |
-| **Cores / Topology** | 32 cores (160 W), 4 NUMA domains (Sub-NUMA Clustering / 4 tiles) | Split the matrices along the $M$ and $N$ dimensions, pinned to local NUMA domains (`OMP_PROC_BIND=close`, `OMP_PLACES=cores`). |
-| **HBM2e memory** | 64 GB HBM2e ($\sim 1\text{ TB/s}$ bandwidth) | The Ozaki scheme multiplies memory traffic by $d$ ($d$ – number of layers/splits). Layer buffers must reside in HBM (`numactl --membind=0-3` in Flat mode). |
+| **Cores / Topology** | 64 CPUs in 8 NUMA nodes 0–7 with 8 CPUs each (2 sockets × SNC4); verified with `numactl -H` on `max`, 2026-11-02 | Split the matrices along the $M$ and $N$ dimensions across the 8 CPU nodes, pinned to local NUMA domains (`OMP_PROC_BIND=close`, `OMP_PLACES=cores`). Each node's layer buffers should land on its nearest HBM node $N+8$. |
+| **HBM2e memory** | 128 GB HBM2e on NUMA nodes 8–15 (16 GB each, no CPUs, flat mode); DDR on nodes 0–7 (~64 GB each). Bandwidth $\sim 1\text{ TB/s}$ (TODO(confirm)) | The Ozaki scheme multiplies memory traffic by $d$ ($d$ – number of layers/splits). Layer buffers must reside in HBM (`numactl --membind=8-15`; binding to nodes 0–7 would silently use DDR). |
 | **Vector units** | AVX-512 (`F`, `DQ`, `BW`, `VL`, `VNNI`, `BF16`, `FP16`) | Feature extraction ($\text{getexp}$), scaling ($\text{scalef}$) and FP64 → INT8/BF16 quantization are done in `zmm0..zmm31` registers. |
 | **Matrix units** | **Intel AMX** (`AMX-INT8`, `AMX-BF16`) | The main compute engine. Tile registers `tmm0..tmm7` ($16 \text{ rows} \times 64 \text{ bytes}$). The `tdpbssd` instruction multiplies $\text{INT8} \times \text{INT8}$ with exact accumulation into `INT32`. |
 
@@ -147,10 +147,13 @@ void gemm_fp64_ozaki(
 #!/usr/bin/env bash
 set -euo pipefail
 
-export OMP_NUM_THREADS=32
+# Host max (verified with numactl -H, 2026-11-02): 64 CPUs in 8 SNC4 nodes 0-7
+# (DDR); HBM is nodes 8-15 (no CPUs); the nearest HBM node for CPU node N is N+8.
+OZAKI_HBM_NODES="${OZAKI_HBM_NODES:-8-15}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-$(nproc)}"
 export OMP_PROC_BIND=close
 export OMP_PLACES=cores
 
-# Bind memory strictly to HBM nodes (adjust node IDs to match lscpu on max)
-numactl --membind=0,1,2,3 ./build/tests/ozaki_tests
+# Bind memory strictly to HBM nodes; --numa-report prints where pages landed.
+numactl --membind="${OZAKI_HBM_NODES}" ./build/ozaki_tests --numa-report
 ```

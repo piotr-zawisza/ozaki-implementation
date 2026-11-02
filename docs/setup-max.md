@@ -45,5 +45,6 @@ cmake --build build --target ozaki_tests && ctest --test-dir build --output-on-f
 ## Notes
 
 - **Non-interactive shell.** A remote command such as `ssh max "..."` does not read the part of `~/.bashrc` that follows the guard `[[ $- != *i* ]] && return`. If `cmake`/`g++` come from `module load`, that line must be placed in `~/.bashrc` **before** the guard (or in `~/.bash_profile`/`~/.profile`), otherwise the remote build will not find `cmake`/`ctest`.
-- **HBM nodes.** `scripts/run_bench.sh` uses `--membind=0,1,2,3`. On Xeon Max in flat mode with SNC4, nodes 0–3 are usually DDR and HBM is 4–7 (no CPUs). Confirm with `numactl -H` and fix the script in a separate change.
+- **cmake on `max`.** There is no system `cmake`; the official tarball is installed under `~/.local`, and the line that adds its `bin` directory to `PATH` sits in `~/.bashrc` before that guard, so remote commands find `cmake`/`ctest`.
+- **HBM nodes.** Confirmed with `numactl -H` on `max` (2026-11-02): 64 CPUs in 8 SNC4 nodes 0–7 (DDR, ~64 GB each); HBM is nodes 8–15 (no CPUs, 16 GB each); the nearest HBM node for CPU node N is N+8. `scripts/run_bench.sh` binds to `8-15` by default (override with `OZAKI_HBM_NODES`) and `--numa-report` prints the page placement.
 - **Updates.** After every `git push` from the local machine: remote pull, then build + ctest.
