@@ -1,2 +1,13 @@
-build/
-build_local/
+# Build trees
+build*/
+out/
+/compile_commands.json
+CMakeUserPresets.json
+
+# Editors / IDEs
+.vs/
+.vscode/
+.idea/
+
+# Profiling
+perf.data*

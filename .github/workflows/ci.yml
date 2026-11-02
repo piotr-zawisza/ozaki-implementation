@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-generic:
+    name: build + test (generic x86-64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -B build -DOZAKI_NATIVE_ARCH=OFF -DOZAKI_WERROR=ON
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+
+  # Runners have no AMX/Sapphire Rapids: compile only, never execute (SIGILL).
+  build-native:
+    name: compile only (-march=sapphirerapids)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -B build -DOZAKI_NATIVE_ARCH=ON -DOZAKI_WERROR=ON
+      - run: cmake --build build

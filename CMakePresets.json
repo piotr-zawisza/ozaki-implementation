@@ -1,0 +1,24 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "max",
+      "displayName": "Xeon Max 9462 (AMX, Release)",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "OZAKI_NATIVE_ARCH": "ON"
+      }
+    },
+    {
+      "name": "local",
+      "displayName": "Local generic build (no -march=sapphirerapids)",
+      "binaryDir": "${sourceDir}/build_local",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "OZAKI_NATIVE_ARCH": "OFF"
+      }
+    }
+  ]
+}

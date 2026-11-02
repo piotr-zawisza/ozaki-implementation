@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Independent of the caller's cwd.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
 export OMP_NUM_THREADS=32
 export OMP_PROC_BIND=close
 export OMP_PLACES=cores
