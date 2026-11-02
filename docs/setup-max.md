@@ -1,20 +1,20 @@
-# Konfiguracja repo na serwerze `max` (jednorazowo)
+# One-time repository setup on the `max` server
 
-Komendy poniżej uruchamia **użytkownik ręcznie** w zwykłej sesji ssh na `max`.
+The commands below are run **manually by the user** in a regular interactive session on `max`.
 
-Repo jest publiczne, więc klonowanie po HTTPS nie wymaga poświadczeń.
+The repository is public, so cloning over HTTPS needs no credentials.
 
-## 0. Sprawdzenie narzędzi
+## 0. Check the tools
 
 ```bash
 git --version
-cmake --version                                   # >= 3.21 (inaczej: module load cmake albo pip install --user cmake)
+cmake --version                                   # >= 3.21 (otherwise: module load cmake or pip install --user cmake)
 g++ --version                                     # >= 11 (-march=sapphirerapids)
-grep -o 'amx_[a-z0-9]*' /proc/cpuinfo | sort -u   # oczekiwane: amx_bf16 amx_int8 amx_tile
-numactl -H                                        # węzły NUMA; HBM w trybie flat to węzły bez CPU
+grep -o 'amx_[a-z0-9]*' /proc/cpuinfo | sort -u   # expected: amx_bf16 amx_int8 amx_tile
+numactl -H                                        # NUMA nodes; HBM in flat mode = nodes without CPUs
 ```
 
-## 1. Klon
+## 1. Clone
 
 ```bash
 [ -e ~/ozaki-max ] && mv ~/ozaki-max ~/ozaki-max.bak.$(date +%s)
@@ -23,18 +23,18 @@ cd ~/ozaki-max
 git config pull.ff only
 ```
 
-Zdalna komenda `git pull --ff-only` nie robi `checkout`, więc klon musi stać na `main` (tak jest po `--branch main`).
+A remote `git pull --ff-only` does not run `checkout`, so the clone must sit on `main` (it does after `--branch main`).
 
-## 2. Konfiguracja buildu (raz)
+## 2. Configure the build (once)
 
-Zdalna komenda budująca zakłada, że `build/` już istnieje i jest skonfigurowany.
+The remote build command assumes `build/` already exists and is configured.
 
 ```bash
 cd ~/ozaki-max
 cmake --preset max        # = cmake -B build -DCMAKE_BUILD_TYPE=Release -DOZAKI_NATIVE_ARCH=ON
 ```
 
-## 3. Kontrola (to samo, co dozwolone komendy zdalne)
+## 3. Verify
 
 ```bash
 cd ~/ozaki-max
@@ -42,8 +42,8 @@ cmake --build build --target ozaki_tests && ctest --test-dir build --output-on-f
 ./scripts/run_bench.sh
 ```
 
-## Uwagi
+## Notes
 
-- **Powłoka nieinteraktywna.** `ssh max "..."` nie czyta części `~/.bashrc` za strażnikiem `[[ $- != *i* ]] && return`. Jeśli `cmake`/`g++` pochodzą z `module load`, wpis musi stać w `~/.bashrc` **przed** tym strażnikiem (albo w `~/.bash_profile`/`~/.profile`), inaczej zdalny build nie znajdzie `cmake`/`ctest`. Sprawdź: `ssh max 'command -v cmake'` jako zwykły użytkownik.
-- **Węzły HBM.** `scripts/run_bench.sh` ma `--membind=0,1,2,3`. Na Xeon Max w trybie flat z SNC4 węzły 0–3 to zwykle DDR, a HBM to 4–7 (bez CPU). Potwierdź przez `numactl -H` i popraw skrypt osobną zmianą.
-- **Aktualizacje.** Po każdym `git push` z lokalnej maszyny: zdalny pull, potem build+ctest (każde za zgodą w bieżącej turze).
+- **Non-interactive shell.** A remote command such as `ssh max "..."` does not read the part of `~/.bashrc` that follows the guard `[[ $- != *i* ]] && return`. If `cmake`/`g++` come from `module load`, that line must be placed in `~/.bashrc` **before** the guard (or in `~/.bash_profile`/`~/.profile`), otherwise the remote build will not find `cmake`/`ctest`.
+- **HBM nodes.** `scripts/run_bench.sh` uses `--membind=0,1,2,3`. On Xeon Max in flat mode with SNC4, nodes 0–3 are usually DDR and HBM is 4–7 (no CPUs). Confirm with `numactl -H` and fix the script in a separate change.
+- **Updates.** After every `git push` from the local machine: remote pull, then build + ctest.
