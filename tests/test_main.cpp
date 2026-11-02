@@ -20,14 +20,18 @@ static int test_reference_gemm() {
 }
 
 int test_amx_smoke(bool require_amx); // tests/test_amx_smoke.cpp
+int numa_report();                    // tests/numa_report.cpp
 
 int main(int argc, char** argv) {
     bool require_amx = false;
+    bool report_numa = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--require-amx") == 0) {
             require_amx = true;
+        } else if (std::strcmp(argv[i], "--numa-report") == 0) {
+            report_numa = true;
         } else {
-            std::printf("usage: %s [--require-amx]\n", argv[0]);
+            std::printf("usage: %s [--require-amx] [--numa-report]\n", argv[0]);
             return 2;
         }
     }
@@ -35,6 +39,8 @@ int main(int argc, char** argv) {
     int failures = 0;
     failures += test_reference_gemm();
     failures += test_amx_smoke(require_amx);
+    if (report_numa)
+        failures += numa_report();
     std::printf(failures ? "FAILED\n" : "OK\n");
     return failures ? 1 : 0;
 }

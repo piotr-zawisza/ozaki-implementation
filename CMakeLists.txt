@@ -41,11 +41,16 @@ if(OZAKI_NATIVE_ARCH AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 enable_testing()
-add_executable(ozaki_tests tests/test_main.cpp tests/test_amx_smoke.cpp)
+add_executable(ozaki_tests tests/test_main.cpp tests/test_amx_smoke.cpp tests/numa_report.cpp)
 target_link_libraries(ozaki_tests PRIVATE ozaki ozaki_warnings)
 add_test(NAME ozaki_tests COMMAND ozaki_tests)
 # On a native Linux build (i.e. max) a skipped AMX test must fail, so a passing
 # ctest run proves the AMX path executed. CI's native job is compile-only.
 if(OZAKI_NATIVE_ARCH AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_test(NAME ozaki_amx_required COMMAND ozaki_tests --require-amx)
+endif()
+# Page-placement report (move_pages). Without numactl it only reports; the
+# bound-nodes check is exercised by scripts/run_bench.sh.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_test(NAME ozaki_numa_report COMMAND ozaki_tests --numa-report)
 endif()
