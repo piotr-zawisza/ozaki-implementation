@@ -41,6 +41,11 @@ if(OZAKI_NATIVE_ARCH AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 enable_testing()
-add_executable(ozaki_tests tests/test_main.cpp)
+add_executable(ozaki_tests tests/test_main.cpp tests/test_amx_smoke.cpp)
 target_link_libraries(ozaki_tests PRIVATE ozaki ozaki_warnings)
 add_test(NAME ozaki_tests COMMAND ozaki_tests)
+# On a native Linux build (i.e. max) a skipped AMX test must fail, so a passing
+# ctest run proves the AMX path executed. CI's native job is compile-only.
+if(OZAKI_NATIVE_ARCH AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_test(NAME ozaki_amx_required COMMAND ozaki_tests --require-amx)
+endif()
