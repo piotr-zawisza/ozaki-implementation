@@ -1,6 +1,7 @@
 #include "ozaki/ozaki_gemm.hpp"
 
 #include <cstdio>
+#include <cstring>
 
 // Sanity check of the reference GEMM only. Ozaki tests (slicer, VNNI packing,
 // accuracy vs __float128) get added together with the code they cover.
@@ -18,9 +19,22 @@ static int test_reference_gemm() {
     return 0;
 }
 
-int main() {
+int test_amx_smoke(bool require_amx); // tests/test_amx_smoke.cpp
+
+int main(int argc, char** argv) {
+    bool require_amx = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--require-amx") == 0) {
+            require_amx = true;
+        } else {
+            std::printf("usage: %s [--require-amx]\n", argv[0]);
+            return 2;
+        }
+    }
+
     int failures = 0;
     failures += test_reference_gemm();
+    failures += test_amx_smoke(require_amx);
     std::printf(failures ? "FAILED\n" : "OK\n");
     return failures ? 1 : 0;
 }
